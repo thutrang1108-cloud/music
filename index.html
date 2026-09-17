@@ -392,57 +392,53 @@
     });
 
     async function logVisitor() {
-      try {
-        // Lấy thông tin IP và Quốc gia từ ip-api.com
-        const res = await fetch('https://ip-api.com/json');
-        const data = await res.json();
-        const ipAddress = data.query || 'Không rõ';
-        const country = data.country || 'Không rõ';
+  try {
+    // Dùng ipify để lấy IP ổn định từ trình duyệt
+    const res = await fetch('https://api.ipify.org?format=json');
+    const data = await res.json();
+    const ipAddress = data.ip || 'Không rõ';
 
-        const ua = navigator.userAgent;
-        
-        // Nhận diện trình duyệt từ User-Agent
-        let browserName = "Không rõ";
-        if (/chrome|crios|crmo/i.test(ua)) browserName = "Chrome";
-        else if (/firefox|fxios/i.test(ua)) browserName = "Firefox";
-        else if (/safari/i.test(ua) && !/chrome|crios|crmo/i.test(ua)) browserName = "Safari";
-        else if (/edg/i.test(ua)) browserName = "Edge";
-        else if (/opera|opr/i.test(ua)) browserName = "Opera";
+    const ua = navigator.userAgent;
+    
+    let browserName = "Không rõ";
+    if (/chrome|crios|crmo/i.test(ua)) browserName = "Chrome";
+    else if (/firefox|fxios/i.test(ua)) browserName = "Firefox";
+    else if (/safari/i.test(ua) && !/chrome|crios|crmo/i.test(ua)) browserName = "Safari";
+    else if (/edg/i.test(ua)) browserName = "Edge";
+    else if (/opera|opr/i.test(ua)) browserName = "Opera";
 
-        // Nhận diện hệ điều hành
-        let osName = "Khác (PC/Laptop)";
-        if (/android/i.test(ua)) osName = "Android";
-        else if (/iphone|ipad|ipod/i.test(ua)) osName = "iOS";
-        else if (/win/i.test(ua)) osName = "Windows";
-        else if (/mac/i.test(ua)) osName = "MacOS";
-        else if (/linux/i.test(ua)) osName = "Linux";
+    let osName = "Khác (PC/Laptop)";
+    if (/android/i.test(ua)) osName = "Android";
+    else if (/iphone|ipad|ipod/i.test(ua)) osName = "iOS";
+    else if (/win/i.test(ua)) osName = "Windows";
+    else if (/mac/i.test(ua)) osName = "MacOS";
+    else if (/linux/i.test(ua)) osName = "Linux";
 
-        const logData = {
-          embeds: [{
-            color: 0x8b5cf6,
-            fields: [
-              { name: "IP", value: `\`${ipAddress}\``, inline: true },
-              { name: "Quốc gia", value: `**${country}**`, inline: true },
-              { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
-              { name: "Trình duyệt", value: `**${browserName}**`, inline: true },
-              { name: "Thời gian", value: new Date().toLocaleString('vi-VN'), inline: false },
-              { name: "Trang web sử dụng", value: window.location.href, inline: false },
-              { name: "User-Agent", value: `\`\`\`${ua}\`\`\`` }
-            ],
-            timestamp: new Date().toISOString()
-          }]
-        };
+    const logData = {
+      embeds: [{
+        color: 0x8b5cf6,
+        fields: [
+          { name: "IP", value: `\`${ipAddress}\``, inline: true },
+          { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
+          { name: "Trình duyệt", value: `**${browserName}**`, inline: true },
+          { name: "Thời gian", value: new Date().toLocaleString('vi-VN'), inline: false },
+          { name: "Trang web sử dụng", value: window.location.href, inline: false },
+          { name: "User-Agent", value: `\`\`\`${ua}\`\`\`` }
+        ],
+        timestamp: new Date().toISOString()
+      }]
+    };
 
-        if (DISCORD_WEBHOOK) {
-          await fetch(DISCORD_WEBHOOK, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(logData)
-          });
-        }
-      } catch (err) { console.error(err); }
+    if (DISCORD_WEBHOOK) {
+      await fetch(DISCORD_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logData)
+      });
     }
-    logVisitor();
+  } catch (err) { console.error("Lỗi gửi log:", err); }
+}
+logVisitor();
 
     function renderPlaylist() {
       playlistEl.innerHTML = songs.map((song, index) => `
