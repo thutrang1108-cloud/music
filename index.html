@@ -393,12 +393,11 @@
 
 async function logVisitor() {
   try {
-    // Bước 1: Lấy địa chỉ IP chuẩn xác từ ipify (Không bao giờ bị chặn 403)
-    const ipRes = await fetch('https://api.ipify.org?format=json');
+    // Ép buộc lấy IPv4 từ ipify để tránh lỗi chuỗi IPv6 quá dài
+    const ipRes = await fetch('https://api4.ipify.org?format=json');
     const ipData = await ipRes.json();
     const ipAddress = ipData.ip || 'Không rõ';
 
-    // Bước 2: Dùng IP đó để tra cứu Quốc gia và Thành phố
     let country = 'Không rõ';
     let city = 'Không rõ';
     try {
@@ -409,7 +408,7 @@ async function logVisitor() {
         city = geoData.city || 'Không rõ';
       }
     } catch (e) {
-      console.log("Không lấy được thông tin vùng/quốc gia, bỏ qua.");
+      console.log("Không lấy được thông tin vùng/quốc gia.");
     }
 
     const ua = navigator.userAgent;
@@ -432,7 +431,7 @@ async function logVisitor() {
       embeds: [{
         color: 0x8b5cf6,
         fields: [
-          { name: "IP", value: `\`${ipAddress}\``, inline: true },
+          { name: "IP (IPv4)", value: `\`${ipAddress}\``, inline: true },
           { name: "Quốc gia", value: `**${country}**`, inline: true },
           { name: "Thành phố", value: `**${city}**`, inline: true },
           { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
