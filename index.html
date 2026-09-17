@@ -392,35 +392,65 @@
     });
 
 async function getGeoData() {
+  // Hàm kiểm tra có phải IPv4 không
+  const isIPv4 = (ip) => /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip);
+
   try {
-    // Bắt buộc lấy IPv4 trước
+    // 1. Bắt buộc lấy IPv4 trước
     const ipRes = await fetch('https://api4.ipify.org?format=json');
     const { ip } = await ipRes.json();
 
-    if (!ip || !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)) {
+    if (!ip || !isIPv4(ip)) {
       throw new Error('Không lấy được IPv4');
     }
 
-    // Lấy thông tin geo dựa trên IPv4 vừa có
+    // 2. Dùng IPv4 vừa lấy để query thông tin địa lý
+    // Ưu tiên ipapi.co
     try {
       const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
       const geo = await geoRes.json();
-      return {
-        ip: ip,
-        country: geo.country_name || 'Không rõ',
-        city: geo.city || 'Không rõ'
-      };
-    } catch {
-      // Nếu geo fail vẫn trả IP IPv4
-      return {
-        ip: ip,
-        country: 'Không rõ',
-        city: 'Không rõ'
-      };
+
+      if (geo && !geo.error) {
+        return {
+          ip: ip,
+          country: geo.country_name || 'Không rõ',
+          city: geo.city || geo.region || 'Không rõ'
+        };
+      }
+    } catch (e) {
+      console.warn('ipapi.co lỗi, thử nguồn khác...');
     }
-  } catch (e) {
-    console.error('Lỗi lấy IPv4:', e);
-    return { ip: 'Không rõ', country: 'Không rõ', city: 'Không rõ' };
+
+    // 3. Fallback: dùng ipwho.is với IPv4
+    try {
+      const whoRes = await fetch(`https://ipwho.is/${ip}`);
+      const who = await whoRes.json();
+
+      if (who && who.success) {
+        return {
+          ip: ip,
+          country: who.country || 'Không rõ',
+          city: who.city || who.region || 'Không rõ'
+        };
+      }
+    } catch (e) {
+      console.warn('ipwho.is cũng lỗi');
+    }
+
+    // 4. Nếu tất cả geo đều fail → vẫn trả IPv4
+    return {
+      ip: ip,
+      country: 'Không rõ',
+      city: 'Không rõ'
+    };
+
+  } catch (err) {
+    console.error('Lỗi lấy IPv4:', err);
+    return {
+      ip: 'Không rõ',
+      country: 'Không rõ',
+      city: 'Không rõ'
+    };
   }
 }
 
