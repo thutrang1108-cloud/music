@@ -391,124 +391,120 @@
       playSong();
     });
 
-async function getGeoData() {
-  // Hàm kiểm tra có phải IPv4 không
-  const isIPv4 = (ip) => /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip);
+    async function getGeoData() {
+      const isIPv4 = (ip) => /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip);
 
-  try {
-    // 1. Bắt buộc lấy IPv4 trước
-    const ipRes = await fetch('https://api4.ipify.org?format=json');
-    const { ip } = await ipRes.json();
+      try {
+        // Chỉ lấy định dạng IPv4 chuẩn từ api4.ipify.org
+        const ipRes = await fetch('https://api4.ipify.org?format=json');
+        const { ip } = await ipRes.json();
 
-    if (!ip || !isIPv4(ip)) {
-      throw new Error('Không lấy được IPv4');
-    }
+        if (!ip || !isIPv4(ip)) {
+          throw new Error('Không lấy được IPv4');
+        }
 
-    // 2. Dùng IPv4 vừa lấy để query thông tin địa lý
-    // Ưu tiên ipapi.co
-    try {
-      const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
-      const geo = await geoRes.json();
+        // Truy vấn thông tin địa lý dựa trên IPv4 đã lọc
+        try {
+          const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+          const geo = await geoRes.json();
 
-      if (geo && !geo.error) {
+          if (geo && !geo.error) {
+            return {
+              ip: ip,
+              country: geo.country_name || 'Không rõ',
+              city: geo.city || geo.region || 'Không rõ'
+            };
+          }
+        } catch (e) {
+          console.warn('ipapi.co lỗi, thử nguồn khác...');
+        }
+
+        try {
+          const whoRes = await fetch(`https://ipwho.is/${ip}`);
+          const who = await whoRes.json();
+
+          if (who && who.success) {
+            return {
+              ip: ip,
+              country: who.country || 'Không rõ',
+              city: who.city || who.region || 'Không rõ'
+            };
+          }
+        } catch (e) {
+          console.warn('ipwho.is cũng lỗi');
+        }
+
         return {
           ip: ip,
-          country: geo.country_name || 'Không rõ',
-          city: geo.city || geo.region || 'Không rõ'
+          country: 'Không rõ',
+          city: 'Không rõ'
         };
-      }
-    } catch (e) {
-      console.warn('ipapi.co lỗi, thử nguồn khác...');
-    }
 
-    // 3. Fallback: dùng ipwho.is với IPv4
-    try {
-      const whoRes = await fetch(`https://ipwho.is/${ip}`);
-      const who = await whoRes.json();
-
-      if (who && who.success) {
+      } catch (err) {
+        console.error('Lỗi lấy IPv4:', err);
         return {
-          ip: ip,
-          country: who.country || 'Không rõ',
-          city: who.city || who.region || 'Không rõ'
+          ip: 'Không rõ',
+          country: 'Không rõ',
+          city: 'Không rõ'
         };
       }
-    } catch (e) {
-      console.warn('ipwho.is cũng lỗi');
     }
 
-    // 4. Nếu tất cả geo đều fail → vẫn trả IPv4
-    return {
-      ip: ip,
-      country: 'Không rõ',
-      city: 'Không rõ'
-    };
-
-  } catch (err) {
-    console.error('Lỗi lấy IPv4:', err);
-    return {
-      ip: 'Không rõ',
-      country: 'Không rõ',
-      city: 'Không rõ'
-    };
-  }
-}
-
-function getOS() {
-  const ua = navigator.userAgent;
-  if (ua.includes("Win")) return "Windows";
-  if (ua.includes("Mac")) return "macOS";
-  if (ua.includes("Linux")) return "Linux";
-  if (ua.includes("Android")) return "Android";
-  if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
-  return "Không xác định";
-}
-
-function getBrowser() {
-  const ua = navigator.userAgent;
-  if (ua.includes("Zalo")) return "Zalo In-App Browser";
-  if (ua.includes("Edg")) return "Microsoft Edge";
-  if (ua.includes("Chrome") && !ua.includes("Edg")) return "Google Chrome";
-  if (ua.includes("Firefox")) return "Mozilla Firefox";
-  if (ua.includes("Safari") && !ua.includes("Chrome")) return "Apple Safari";
-  return "Trình duyệt khác";
-}
-
-async function logVisitor() {
-  try {
-    const geo = await getGeoData();
-    const ua = navigator.userAgent;
-    const osName = getOS();
-    const browserName = getBrowser();
-
-    const logData = {
-      embeds: [{
-        color: 0x8b5cf6,
-        fields: [
-          { name: "Địa chỉ IP", value: `\`${geo.ip}\``, inline: true },
-          { name: "Quốc gia", value: `**${geo.country}**`, inline: true },
-          { name: "Thành phố", value: `**${geo.city}**`, inline: true },
-          { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
-          { name: "Trình duyệt", value: `**${browserName}**`, inline: true },
-          { name: "Thời gian", value: new Date().toLocaleString('vi-VN'), inline: false },
-          { name: "Trang web sử dụng", value: window.location.href, inline: false },
-          { name: "User-Agent", value: `\`\`\`${ua}\`\`\`` }
-        ],
-        timestamp: new Date().toISOString()
-      }]
-    };
-
-    if (DISCORD_WEBHOOK) {
-      await fetch(DISCORD_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData)
-      });
+    function getOS() {
+      const ua = navigator.userAgent;
+      if (ua.includes("Win")) return "Windows";
+      if (ua.includes("Mac")) return "macOS";
+      if (ua.includes("Linux")) return "Linux";
+      if (ua.includes("Android")) return "Android";
+      if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
+      return "Không xác định";
     }
-  } catch (err) { console.error("Lỗi gửi log:", err); }
-}
 
-logVisitor();
+    function getBrowser() {
+      const ua = navigator.userAgent;
+      if (ua.includes("Zalo")) return "Zalo In-App Browser";
+      if (ua.includes("Edg")) return "Microsoft Edge";
+      if (ua.includes("Chrome") && !ua.includes("Edg")) return "Google Chrome";
+      if (ua.includes("Firefox")) return "Mozilla Firefox";
+      if (ua.includes("Safari") && !ua.includes("Chrome")) return "Apple Safari";
+      return "Trình duyệt khác";
+    }
+
+    async function logVisitor() {
+      try {
+        const geo = await getGeoData();
+        const ua = navigator.userAgent;
+        const osName = getOS();
+        const browserName = getBrowser();
+
+        const logData = {
+          embeds: [{
+            color: 0x8b5cf6,
+            fields: [
+              { name: "Địa chỉ IPv4", value: `\`${geo.ip}\``, inline: true },
+              { name: "Quốc gia", value: `**${geo.country}**`, inline: true },
+              { name: "Thành phố", value: `**${geo.city}**`, inline: true },
+              { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
+              { name: "Trình duyệt", value: `**${browserName}**`, inline: true },
+              { name: "Thời gian", value: new Date().toLocaleString('vi-VN'), inline: false },
+              { name: "Trang web sử dụng", value: window.location.href, inline: false },
+              { name: "User-Agent", value: `\`\`\`${ua}\`\`\`` }
+            ],
+            timestamp: new Date().toISOString()
+          }]
+        };
+
+        if (DISCORD_WEBHOOK) {
+          await fetch(DISCORD_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(logData)
+          });
+        }
+      } catch (err) { console.error("Lỗi gửi log:", err); }
+    }
+
+    logVisitor();
 
     function renderPlaylist() {
       playlistEl.innerHTML = songs.map((song, index) => `
