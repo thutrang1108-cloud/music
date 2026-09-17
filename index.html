@@ -393,19 +393,22 @@
 
     async function logVisitor() {
   try {
-    // Dùng ipify để lấy IP ổn định từ trình duyệt
-    const res = await fetch('https://api.ipify.org?format=json');
+    // Dùng ipwho.is để lấy cả IP, Quốc gia và Thành phố
+    const res = await fetch('https://ipwho.is/');
     const data = await res.json();
+    
     const ipAddress = data.ip || 'Không rõ';
+    const country = data.country || 'Không rõ';
+    const city = data.city || 'Không rõ';
 
     const ua = navigator.userAgent;
     
-    let browserName = "Không rõ";
+    let browserName = "Khác";
     if (/chrome|crios|crmo/i.test(ua)) browserName = "Chrome";
     else if (/firefox|fxios/i.test(ua)) browserName = "Firefox";
     else if (/safari/i.test(ua) && !/chrome|crios|crmo/i.test(ua)) browserName = "Safari";
     else if (/edg/i.test(ua)) browserName = "Edge";
-    else if (/opera|opr/i.test(ua)) browserName = "Opera";
+    else if (/zalo/i.test(ua)) browserName = "Zalo In-App Browser";
 
     let osName = "Khác (PC/Laptop)";
     if (/android/i.test(ua)) osName = "Android";
@@ -419,6 +422,8 @@
         color: 0x8b5cf6,
         fields: [
           { name: "IP", value: `\`${ipAddress}\``, inline: true },
+          { name: "Quốc gia", value: `**${country}**`, inline: true },
+          { name: "Thành phố", value: `**${city}**`, inline: true },
           { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
           { name: "Trình duyệt", value: `**${browserName}**`, inline: true },
           { name: "Thời gian", value: new Date().toLocaleString('vi-VN'), inline: false },
