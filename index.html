@@ -391,49 +391,89 @@
       playSong();
     });
 
+async function getGeoData() {
+  // Nguồn 1: ipwho.is
+  try {
+    const res = await fetch('https://ipwho.is/');
+    const data = await res.json();
+    if (data.success) {
+      return {
+        ip: data.ip,
+        country: data.country || 'Không rõ',
+        city: data.city || 'Không rõ'
+      };
+    }
+  } catch (e) {
+    console.warn("Nguồn 1 (ipwho.is) lỗi, đang thử nguồn 2...");
+  }
+
+  // Nguồn 2: ipapi.co
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const data = await res.json();
+    if (data.ip) {
+      return {
+        ip: data.ip,
+        country: data.country_name || 'Không rõ',
+        city: data.city || 'Không rõ'
+      };
+    }
+  } catch (e) {
+    console.warn("Nguồn 2 (ipapi) lỗi, đang thử nguồn 3...");
+  }
+
+  // Nguồn 3: ipify (Cứu cánh cuối cùng chỉ lấy IP)
+  try {
+    const res = await fetch('https://api4.ipify.org?format=json');
+    const data = await res.json();
+    if (data.ip) {
+      return {
+        ip: data.ip,
+        country: "Không rõ",
+        city: "Không rõ"
+      };
+    }
+  } catch (e) {
+    console.error("Tất cả dịch vụ IP đều không phản hồi.");
+  }
+
+  return { ip: "Không rõ", country: "Không rõ", city: "Không rõ" };
+}
+
+function getOS() {
+  const ua = navigator.userAgent;
+  if (ua.includes("Win")) return "Windows";
+  if (ua.includes("Mac")) return "macOS";
+  if (ua.includes("Linux")) return "Linux";
+  if (ua.includes("Android")) return "Android";
+  if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
+  return "Không xác định";
+}
+
+function getBrowser() {
+  const ua = navigator.userAgent;
+  if (ua.includes("Zalo")) return "Zalo In-App Browser";
+  if (ua.includes("Edg")) return "Microsoft Edge";
+  if (ua.includes("Chrome") && !ua.includes("Edg")) return "Google Chrome";
+  if (ua.includes("Firefox")) return "Mozilla Firefox";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) return "Apple Safari";
+  return "Trình duyệt khác";
+}
+
 async function logVisitor() {
   try {
-    // Ép buộc lấy IPv4 từ ipify để tránh lỗi chuỗi IPv6 quá dài
-    const ipRes = await fetch('https://api4.ipify.org?format=json');
-    const ipData = await ipRes.json();
-    const ipAddress = ipData.ip || 'Không rõ';
-
-    let country = 'Không rõ';
-    let city = 'Không rõ';
-    try {
-      const geoRes = await fetch(`https://ipapi.co/${ipAddress}/json/`);
-      const geoData = await geoRes.json();
-      if (!geoData.error) {
-        country = geoData.country_name || 'Không rõ';
-        city = geoData.city || 'Không rõ';
-      }
-    } catch (e) {
-      console.log("Không lấy được thông tin vùng/quốc gia.");
-    }
-
+    const geo = await getGeoData();
     const ua = navigator.userAgent;
-    
-    let browserName = "Khác";
-    if (/chrome|crios|crmo/i.test(ua)) browserName = "Chrome";
-    else if (/firefox|fxios/i.test(ua)) browserName = "Firefox";
-    else if (/safari/i.test(ua) && !/chrome|crios|crmo/i.test(ua)) browserName = "Safari";
-    else if (/edg/i.test(ua)) browserName = "Edge";
-    else if (/zalo/i.test(ua)) browserName = "Zalo In-App Browser";
-
-    let osName = "Khác (PC/Laptop)";
-    if (/android/i.test(ua)) osName = "Android";
-    else if (/iphone|ipad|ipod/i.test(ua)) osName = "iOS";
-    else if (/win/i.test(ua)) osName = "Windows";
-    else if (/mac/i.test(ua)) osName = "MacOS";
-    else if (/linux/i.test(ua)) osName = "Linux";
+    const osName = getOS();
+    const browserName = getBrowser();
 
     const logData = {
       embeds: [{
         color: 0x8b5cf6,
         fields: [
-          { name: "IP (IPv4)", value: `\`${ipAddress}\``, inline: true },
-          { name: "Quốc gia", value: `**${country}**`, inline: true },
-          { name: "Thành phố", value: `**${city}**`, inline: true },
+          { name: "Địa chỉ IP", value: `\`${geo.ip}\``, inline: true },
+          { name: "Quốc gia", value: `**${geo.country}**`, inline: true },
+          { name: "Thành phố", value: `**${geo.city}**`, inline: true },
           { name: "Hệ điều hành", value: `**${osName}**`, inline: true },
           { name: "Trình duyệt", value: `**${browserName}**`, inline: true },
           { name: "Thời gian", value: new Date().toLocaleString('vi-VN'), inline: false },
@@ -453,6 +493,7 @@ async function logVisitor() {
     }
   } catch (err) { console.error("Lỗi gửi log:", err); }
 }
+
 logVisitor();
 
     function renderPlaylist() {
