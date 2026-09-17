@@ -392,52 +392,36 @@
     });
 
 async function getGeoData() {
-  // Nguồn 1: ipwho.is
   try {
-    const res = await fetch('https://ipwho.is/');
-    const data = await res.json();
-    if (data.success) {
+    // Bắt buộc lấy IPv4 trước
+    const ipRes = await fetch('https://api4.ipify.org?format=json');
+    const { ip } = await ipRes.json();
+
+    if (!ip || !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)) {
+      throw new Error('Không lấy được IPv4');
+    }
+
+    // Lấy thông tin geo dựa trên IPv4 vừa có
+    try {
+      const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+      const geo = await geoRes.json();
       return {
-        ip: data.ip,
-        country: data.country || 'Không rõ',
-        city: data.city || 'Không rõ'
+        ip: ip,
+        country: geo.country_name || 'Không rõ',
+        city: geo.city || 'Không rõ'
+      };
+    } catch {
+      // Nếu geo fail vẫn trả IP IPv4
+      return {
+        ip: ip,
+        country: 'Không rõ',
+        city: 'Không rõ'
       };
     }
   } catch (e) {
-    console.warn("Nguồn 1 (ipwho.is) lỗi, đang thử nguồn 2...");
+    console.error('Lỗi lấy IPv4:', e);
+    return { ip: 'Không rõ', country: 'Không rõ', city: 'Không rõ' };
   }
-
-  // Nguồn 2: ipapi.co
-  try {
-    const res = await fetch('https://ipapi.co/json/');
-    const data = await res.json();
-    if (data.ip) {
-      return {
-        ip: data.ip,
-        country: data.country_name || 'Không rõ',
-        city: data.city || 'Không rõ'
-      };
-    }
-  } catch (e) {
-    console.warn("Nguồn 2 (ipapi) lỗi, đang thử nguồn 3...");
-  }
-
-  // Nguồn 3: ipify (Cứu cánh cuối cùng chỉ lấy IP)
-  try {
-    const res = await fetch('https://api4.ipify.org?format=json');
-    const data = await res.json();
-    if (data.ip) {
-      return {
-        ip: data.ip,
-        country: "Không rõ",
-        city: "Không rõ"
-      };
-    }
-  } catch (e) {
-    console.error("Tất cả dịch vụ IP đều không phản hồi.");
-  }
-
-  return { ip: "Không rõ", country: "Không rõ", city: "Không rõ" };
 }
 
 function getOS() {
