@@ -391,15 +391,26 @@
       playSong();
     });
 
-    async function logVisitor() {
+async function logVisitor() {
   try {
-    // Dùng ipwho.is để lấy cả IP, Quốc gia và Thành phố
-    const res = await fetch('https://ipwho.is/');
-    const data = await res.json();
-    
-    const ipAddress = data.ip || 'Không rõ';
-    const country = data.country || 'Không rõ';
-    const city = data.city || 'Không rõ';
+    // Bước 1: Lấy địa chỉ IP chuẩn xác từ ipify (Không bao giờ bị chặn 403)
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipRes.json();
+    const ipAddress = ipData.ip || 'Không rõ';
+
+    // Bước 2: Dùng IP đó để tra cứu Quốc gia và Thành phố
+    let country = 'Không rõ';
+    let city = 'Không rõ';
+    try {
+      const geoRes = await fetch(`https://ipapi.co/${ipAddress}/json/`);
+      const geoData = await geoRes.json();
+      if (!geoData.error) {
+        country = geoData.country_name || 'Không rõ';
+        city = geoData.city || 'Không rõ';
+      }
+    } catch (e) {
+      console.log("Không lấy được thông tin vùng/quốc gia, bỏ qua.");
+    }
 
     const ua = navigator.userAgent;
     
